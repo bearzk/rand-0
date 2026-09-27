@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rand-0</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #111; padding: 24px; }
+    h1 { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 700px; }
+    .card { background: white; border-radius: 12px; padding: 20px; border: 2px solid transparent; }
+    .card.active { border-color: #111; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; }
+    label { display: block; font-size: 0.8rem; color: #555; margin-bottom: 4px; margin-top: 12px; }
+    input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px; font-size: 0.85rem; font-family: inherit; }
+    textarea { resize: vertical; min-height: 60px; }
+    button { margin-top: 16px; width: 100%; padding: 9px; border: none; border-radius: 6px;
+             background: #111; color: white; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+    button:hover { background: #333; }
+    button.stop { background: #e53; }
+    button.stop:hover { background: #c33; }
+    .status { margin-top: 10px; font-size: 0.78rem; color: #777; min-height: 18px; }
+    .badge { display: inline-block; font-size: 0.7rem; padding: 2px 7px; border-radius: 10px;
+             background: #111; color: white; margin-left: 6px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+  <h1>rand-0 <span id="modeBadge" class="badge" style="display:none"></span></h1>
+  <div class="cards">
+
+    <div class="card" id="weatherCard">
+      <h2>🌤 Weather</h2>
+      <label>Cities (comma-separated)</label>
+      <input id="cities" type="text" placeholder="munich, xian">
+      <button id="weatherBtn">Start Weather</button>
+      <div class="status" id="weatherStatus"></div>
+    </div>
+
+    <div class="card" id="readerCard">
+      <h2>📖 Reader</h2>
+      <label>Book URL (.txt)</label>
+      <input id="bookUrl" type="url" placeholder="https://...book.txt">
+      <button id="readerBtn">Start Reader</button>
+      <div class="status" id="readerStatus"></div>
+    </div>
+
+  </div>
+
+  <button class="stop" id="stopBtn" style="max-width:700px;margin-top:16px" onclick="stop()">Stop</button>
+
+  <script>
+    async function loadState() {
+      const { mode, config } = await fetch("/state").then(r => r.json());
+      document.getElementById("cities").value = (config.cities || []).join(", ");
+      document.getElementById("bookUrl").value = config.bookUrl || "";
+      setMode(mode);
+    }
+
+    function setMode(mode) {
+      document.getElementById("weatherCard").classList.toggle("active", mode === "weather");
+      document.getElementById("readerCard").classList.toggle("active", mode === "reader");
+      const badge = document.getElementById("modeBadge");
+      if (mode === "idle") { badge.style.display = "none"; }
+      else { badge.textContent = mode; badge.style.display = "inline-block"; }
+    }
+
+    async function startWeather() {
+      const cities = document.getElementById("cities").value
+        .split(",").map(s => s.trim()).filter(Boolean);
+      if (!cities.length) return;
+      document.getElementById("weatherStatus").textContent = "Starting...";
+      const { ok, error } = await fetch("/weather/start", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cities }),
+      }).then(r => r.json());
+      document.getElementById("weatherStatus").textContent = ok ? "Running ✓" : `Error: ${error}`;
+      if (ok) setMode("weather");
+    }
+
+    async function startReader() {
+      const url = document.getElementById("bookUrl").value.trim();
+      if (!url) return;
+      document.getElementById("readerStatus").textContent = "Fetching book...";
+      const { ok, error } = await fetch("/reader/start", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      }).then(r => r.json());
+      document.getElementById("readerStatus").textContent = ok ? "Running ✓" : `Error: ${error}`;
+      if (ok) setMode("reader");
+    }
+
+    async function stop() {
+      await fetch("/stop", { method: "POST" });
+      document.getElementById("weatherStatus").textContent = "";
+      document.getElementById("readerStatus").textContent = "";
+      setMode("idle");
+    }
+
+    document.getElementById("weatherBtn").onclick = startWeather;
+    document.getElementById("readerBtn").onclick = startReader;
+
+    loadState();
+  </script>
+</body>
+</html>

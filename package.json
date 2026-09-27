@@ -1,0 +1,22 @@
+{
+  "name": "rand-0.git",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/server.ts",
+    "dev": "bun --watch run src/server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/ws": "^8.18.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "hono": "^4.13.9",
+    "ws": "^8.22.0"
+  }
+}
