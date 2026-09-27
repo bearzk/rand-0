@@ -13,14 +13,13 @@ Push weather to Rand/0 Display Mode.
 - Fetches only if cache is older than CACHE_TTL seconds
 - Renders from cache every INTERVAL seconds
 
-Usage: uv run weather.py [ip] [interval_seconds]
+Usage: uv run weather.py [ip]
 """
 import sys, time, json, threading, requests, websocket
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
 IP        = sys.argv[1] if len(sys.argv) > 1 else "192.168.178.132"
-INTERVAL  = int(sys.argv[2]) if len(sys.argv) > 2 else 60
 WS_URL    = f"ws://{IP}/display/gray4"
 SIZE      = 200
 CACHE_TTL = 6 * 3600  # seconds
@@ -165,7 +164,7 @@ def run():
             listener = websocket.WebSocket()
             listener.connect(WS_URL)
             listener.settimeout(1.0)
-            deadline = time.time() + INTERVAL
+            deadline = time.time() + 86400  # wait up to 24h for a button press
             button_pressed = False
             while time.time() < deadline:
                 try:
