@@ -14,7 +14,7 @@ E-ink book reader for Rand/0 Display Mode.
 
 Usage: uv run reader.py <book.txt> [ip]
 """
-import sys, time, json, textwrap, websocket
+import sys, time, json, websocket
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
@@ -29,29 +29,54 @@ WS_URL    = f"ws://{IP}/display/gray4"
 SIZE      = 200
 
 MARGIN    = 6
-FONT_SIZE = 12
-COLS      = 18   # chars per line
-TEXT_ROWS = 14   # lines of text per page (last row = status bar)
-LINE_H    = 13   # pixels per line
+FONT_SIZE = 13
+TEXT_ROWS = 13   # lines of text per page
+LINE_H    = 14   # pixels per line
+USABLE_W  = SIZE - 2 * MARGIN
 
 PROGRESS_PATH = BOOK_PATH.with_suffix(".progress")
 
 
+def get_font():
+    for path in ("/System/Library/Fonts/STHeiti Light.ttc",
+                 "/System/Library/Fonts/STHeiti Medium.ttc",
+                 "/System/Library/Fonts/Helvetica.ttc"):
+        try:
+            return ImageFont.truetype(path, FONT_SIZE)
+        except Exception:
+            pass
+    return ImageFont.load_default()
+
+
+def wrap_line(text: str, font) -> list[str]:
+    """Pixel-aware line wrap — handles CJK and Latin mixed text."""
+    lines, current, current_w = [], "", 0
+    for ch in text:
+        ch_w = font.getbbox(ch)[2]
+        if current_w + ch_w > USABLE_W:
+            lines.append(current)
+            current, current_w = ch, ch_w
+        else:
+            current += ch
+            current_w += ch_w
+    if current:
+        lines.append(current)
+    return lines or [""]
+
+
 def load_book(path: Path) -> list[str]:
     """Load and paginate book into pages of TEXT_ROWS lines."""
+    font = get_font()
     raw = path.read_text(encoding="utf-8", errors="replace")
-    # wrap each paragraph
     lines = []
     for para in raw.splitlines():
         para = para.strip()
         if not para:
-            lines.append("")  # blank line between paragraphs
+            lines.append("")
         else:
-            lines.extend(textwrap.wrap(para, width=COLS) or [""])
+            lines.extend(wrap_line(para, font))
     # chunk into pages
-    pages = []
-    for i in range(0, len(lines), TEXT_ROWS):
-        pages.append(lines[i:i + TEXT_ROWS])
+    pages = [lines[i:i + TEXT_ROWS] for i in range(0, len(lines), TEXT_ROWS)]
     return pages
 
 
@@ -70,11 +95,11 @@ def render(pages: list, page_idx: int) -> bytes:
     img = Image.new("L", (SIZE, SIZE), 255)
     d = ImageDraw.Draw(img)
 
+    font  = get_font()
     try:
-        font  = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", FONT_SIZE)
         small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 10)
     except Exception:
-        font = small = ImageFont.load_default()
+        small = ImageFont.load_default()
 
     lines = pages[page_idx]
     y = MARGIN
@@ -117,7 +142,7 @@ def send_page(pages: list, page_idx: int) -> None:
 def run():
     print(f"Loading {BOOK_PATH}...")
     pages = load_book(BOOK_PATH)
-    print(f"{len(pages)} pages ({COLS}×{TEXT_ROWS})")
+    print(f"{len(pages)} pages ({TEXT_ROWS} lines/page)")
 
     page_idx = max(0, min(load_progress(), len(pages) - 1))
     send_page(pages, page_idx)
