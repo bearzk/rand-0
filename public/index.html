@@ -16,13 +16,17 @@
     input, textarea { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px; font-size: 0.85rem; font-family: inherit; }
     textarea { resize: vertical; min-height: 60px; }
     button { margin-top: 16px; width: 100%; padding: 9px; border: none; border-radius: 6px;
-             background: #111; color: white; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
-    button:hover { background: #333; }
+             background: #1a7a3a; color: white; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+    button:hover { background: #156030; }
     button.stop { background: #e53; }
     button.stop:hover { background: #c33; }
-    .status { margin-top: 10px; font-size: 0.78rem; color: #777; min-height: 18px; }
+    .status { margin-top: 12px; font-size: 0.82rem; color: #777; min-height: 18px; }
+    .running-indicator { display: none; margin-top: 12px; padding: 8px 12px; border-radius: 8px;
+                         background: #eafaf0; border: 1.5px solid #1a7a3a; color: #1a7a3a;
+                         font-size: 0.85rem; font-weight: 600; }
+    .card.active .running-indicator { display: block; }
     .badge { display: inline-block; font-size: 0.7rem; padding: 2px 7px; border-radius: 10px;
-             background: #111; color: white; margin-left: 6px; vertical-align: middle; }
+             background: #1a7a3a; color: white; margin-left: 6px; vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -34,6 +38,7 @@
       <label>Cities (comma-separated)</label>
       <input id="cities" type="text" placeholder="munich, xian">
       <button id="weatherBtn">Start Weather</button>
+      <div class="running-indicator">● Running — down button cycles cities</div>
       <div class="status" id="weatherStatus"></div>
     </div>
 
@@ -42,6 +47,7 @@
       <label>Book URL (.txt)</label>
       <input id="bookUrl" type="url" placeholder="https://...book.txt">
       <button id="readerBtn">Start Reader</button>
+      <div class="running-indicator">● Running — up/down buttons turn pages</div>
       <div class="status" id="readerStatus"></div>
     </div>
 
@@ -58,8 +64,12 @@
     }
 
     function setMode(mode) {
-      document.getElementById("weatherCard").classList.toggle("active", mode === "weather");
-      document.getElementById("readerCard").classList.toggle("active", mode === "reader");
+      const wActive = mode === "weather";
+      const rActive = mode === "reader";
+      document.getElementById("weatherCard").classList.toggle("active", wActive);
+      document.getElementById("readerCard").classList.toggle("active", rActive);
+      if (!wActive) document.getElementById("weatherStatus").textContent = "";
+      if (!rActive) document.getElementById("readerStatus").textContent = "";
       const badge = document.getElementById("modeBadge");
       if (mode === "idle") { badge.style.display = "none"; }
       else { badge.textContent = mode; badge.style.display = "inline-block"; }
