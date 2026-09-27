@@ -32,7 +32,11 @@ export class ReaderSession {
   private async push() {
     const page = this.pages[this.pageIdx] ?? [];
     const frame = renderPage(page, this.pageIdx, this.pages.length);
-    await sendFrame(this.ip, frame);
+    const result = await sendFrame(this.ip, frame);
+    if (!result.ok) {
+      console.error(`Reader: send failed — ${result.error}`);
+      throw new Error(result.error);
+    }
     console.log(`Reader: sent page ${this.pageIdx + 1}/${this.pages.length}`);
   }
 

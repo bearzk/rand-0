@@ -21,6 +21,7 @@
     button.stop { background: #e53; }
     button.stop:hover { background: #c33; }
     .status { margin-top: 12px; font-size: 0.82rem; color: #777; min-height: 18px; }
+    .status:has(⚠) { color: #c44; }
     .running-indicator { display: none; margin-top: 12px; padding: 8px 12px; border-radius: 8px;
                          background: #eafaf0; border: 1.5px solid #1a7a3a; color: #1a7a3a;
                          font-size: 0.85rem; font-weight: 600; }
@@ -57,10 +58,16 @@
 
   <script>
     async function loadState() {
-      const { mode, config } = await fetch("/state").then(r => r.json());
+      const { mode, config, error } = await fetch("/state").then(r => r.json());
       document.getElementById("cities").value = (config.cities || []).join(", ");
       document.getElementById("bookUrl").value = config.bookUrl || "";
       setMode(mode);
+      if (error) showError(mode, error);
+    }
+
+    function showError(mode, msg) {
+      const id = mode === "weather" ? "weatherStatus" : mode === "reader" ? "readerStatus" : null;
+      if (id) document.getElementById(id).textContent = `⚠ ${msg}`;
     }
 
     function setMode(mode) {
@@ -84,8 +91,8 @@
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cities }),
       }).then(r => r.json());
-      document.getElementById("weatherStatus").textContent = ok ? "Running ✓" : `Error: ${error}`;
-      if (ok) setMode("weather");
+      if (ok) { setMode("weather"); }
+      else { document.getElementById("weatherStatus").textContent = `⚠ ${error}`; }
     }
 
     async function startReader() {
@@ -96,8 +103,8 @@
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       }).then(r => r.json());
-      document.getElementById("readerStatus").textContent = ok ? "Running ✓" : `Error: ${error}`;
-      if (ok) setMode("reader");
+      if (ok) { setMode("reader"); }
+      else { document.getElementById("readerStatus").textContent = `⚠ ${error}`; }
     }
 
     async function stop() {

@@ -18,8 +18,8 @@ function buildWsFrame(payload: Buffer): Buffer {
   return Buffer.concat([header, masked]);
 }
 
-export async function sendFrame(ip: string, frame: Buffer): Promise<void> {
-  return new Promise((resolve, reject) => {
+export async function sendFrame(ip: string, frame: Buffer): Promise<{ ok: boolean; error?: string }> {
+  return new Promise((resolve) => {
     const sock = createConnection(80, ip, () => {
       const upgrade = [
         "GET /display/gray4 HTTP/1.1",
@@ -40,16 +40,19 @@ export async function sendFrame(ip: string, frame: Buffer): Promise<void> {
         console.log(`[device] handshake: ${data.toString().split("\r\n")[0]}`);
         const wsFrame = buildWsFrame(frame);
         sock.write(wsFrame, (err) => {
-          if (err) { sock.destroy(); reject(err); return; }
+          if (err) { sock.destroy(); resolve({ ok: false, error: err.message }); return; }
           console.log(`[device] frame sent (${wsFrame.length}b)`);
-          setTimeout(() => { sock.destroy(); resolve(); }, 500);
+          setTimeout(() => { sock.destroy(); resolve({ ok: true }); }, 500);
         });
       } else {
         console.log(`[device] response:`, data.toString());
       }
     });
-    sock.on("error", (e) => { console.error("[device] error:", e.message); reject(e); });
-    setTimeout(() => { sock.destroy(); reject(new Error("timeout")); }, 5000);
+    sock.on("error", (e) => {
+      console.error("[device] error:", e.message);
+      resolve({ ok: false, error: e.message });
+    });
+    setTimeout(() => { sock.destroy(); resolve({ ok: false, error: "connection timeout — is Rand/0 in Display Mode?" }); }, 5000);
   });
 }
 

@@ -46,11 +46,13 @@ const bookCache = new Map<string, { pages: string[][], bookId: string }>();
 type Mode = "weather" | "reader" | "idle";
 let mode: Mode = "idle";
 let session: WeatherSession | ReaderSession | null = null;
+let lastError: string | null = null;
 
 function stopCurrent() {
   session?.close();
   session = null;
   mode = "idle";
+  lastError = null;
 }
 
 const app = new Hono();
@@ -59,7 +61,7 @@ app.use("/", serveStatic({ path: "./public/index.html" }));
 
 app.get("/state", (c) => {
   const cfg = loadConfig();
-  return c.json({ mode, config: cfg });
+  return c.json({ mode, config: cfg, error: lastError });
 });
 
 app.post("/weather/start", async (c) => {
@@ -69,11 +71,17 @@ app.post("/weather/start", async (c) => {
   saveConfig(cfg);
 
   stopCurrent();
-  const ws = new WeatherSession(cfg.cities, cfg.ip);
-  await ws.start();
-  session = ws;
-  mode = "weather";
-  return c.json({ ok: true, mode });
+  try {
+    const ws = new WeatherSession(cfg.cities, cfg.ip);
+    await ws.start();
+    session = ws;
+    mode = "weather";
+    return c.json({ ok: true, mode });
+  } catch (e: any) {
+    lastError = e.message ?? "unknown error";
+    console.error("Weather start failed:", lastError);
+    return c.json({ ok: false, error: lastError });
+  }
 });
 
 app.post("/reader/start", async (c) => {
@@ -103,11 +111,17 @@ app.post("/reader/start", async (c) => {
   }
 
   stopCurrent();
-  const rs = new ReaderSession(cached.pages, cached.bookId, cfg.ip);
-  await rs.start();
-  session = rs;
-  mode = "reader";
-  return c.json({ ok: true, mode });
+  try {
+    const rs = new ReaderSession(cached.pages, cached.bookId, cfg.ip);
+    await rs.start();
+    session = rs;
+    mode = "reader";
+    return c.json({ ok: true, mode });
+  } catch (e: any) {
+    lastError = e.message ?? "unknown error";
+    console.error("Reader start failed:", lastError);
+    return c.json({ ok: false, error: lastError });
+  }
 });
 
 app.post("/stop", (c) => {

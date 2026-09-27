@@ -61,7 +61,11 @@ export class WeatherSession {
     const entry = cache.get(city);
     const minsAgo = entry ? Math.floor((Date.now() - entry.fetchedAt) / 60000) : 0;
     const frame = renderWeather({ ...w, cachedMinsAgo: minsAgo });
-    await sendFrame(this.ip, frame);
+    const result = await sendFrame(this.ip, frame);
+    if (!result.ok) {
+      console.error(`Weather: send failed — ${result.error}`);
+      throw new Error(result.error);
+    }
     console.log(`Weather: sent ${city}`);
   }
 
