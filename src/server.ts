@@ -21,6 +21,11 @@ function saveConfig(cfg: typeof DEFAULT_CONFIG) {
   writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
+import { paginateText } from "./render";
+
+// book cache: url → pages (survives stop/start within same server process)
+const bookCache = new Map<string, { pages: string[][], bookId: string }>();
+
 // active session
 type Mode = "weather" | "reader" | "idle";
 let mode: Mode = "idle";
@@ -59,25 +64,30 @@ app.post("/reader/start", async (c) => {
   const body = await c.req.json() as { url?: string; bookId?: string };
   const cfg = loadConfig();
 
-  let text: string;
-  if (body.url) {
-    console.log(`Fetching book from ${body.url}...`);
-    const r = await fetch(body.url);
+  const url = body.url || cfg.bookUrl;
+  if (!url) return c.json({ error: "no book url" }, 400);
+
+  let cached = bookCache.get(url);
+  if (!cached) {
+    console.log(`Fetching book from ${url}...`);
+    const r = await fetch(url);
     if (!r.ok) return c.json({ error: `fetch failed: ${r.status}` }, 400);
-    text = await r.text();
-    cfg.bookUrl = body.url;
-    cfg.bookId = body.bookId || body.url.split("/").pop()?.replace(/\W+/g, "_") || "book";
+    const text = await r.text();
+    const bookId = body.bookId || url.split("/").pop()?.replace(/\W+/g, "_") || "book";
+    console.log(`Paginating...`);
+    const pages = paginateText(text);
+    console.log(`${pages.length} pages`);
+    cached = { pages, bookId };
+    bookCache.set(url, cached);
+    cfg.bookUrl = url;
+    cfg.bookId = bookId;
     saveConfig(cfg);
-  } else if (cfg.bookUrl) {
-    const r = await fetch(cfg.bookUrl);
-    if (!r.ok) return c.json({ error: `fetch failed: ${r.status}` }, 400);
-    text = await r.text();
   } else {
-    return c.json({ error: "no book url" }, 400);
+    console.log(`Book cached (${cached.pages.length} pages), skipping fetch+paginate`);
   }
 
   stopCurrent();
-  const rs = new ReaderSession(text, cfg.bookId, cfg.ip);
+  const rs = new ReaderSession(cached.pages, cached.bookId, cfg.ip);
   await rs.start();
   session = rs;
   mode = "reader";

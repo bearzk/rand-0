@@ -1,4 +1,4 @@
-import { renderPage, paginateText } from "./render";
+import { renderPage } from "./render";
 import { sendFrame, listenButtons } from "./device";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
@@ -11,9 +11,9 @@ export class ReaderSession {
   private progressPath: string;
   private ip: string;
 
-  constructor(text: string, bookId: string, ip: string) {
+  constructor(pages: string[][], bookId: string, ip: string) {
     this.ip = ip;
-    this.pages = paginateText(text);
+    this.pages = pages;
     this.progressPath = join(homedir(), ".config", `rand-0-${bookId}.progress`);
     this.pageIdx = this.loadProgress();
     console.log(`Reader: ${this.pages.length} pages, starting at ${this.pageIdx + 1}`);
