@@ -48,8 +48,8 @@ export function renderWeather(w: {
   ctx.beginPath(); ctx.moveTo(MARGIN, 74); ctx.lineTo(SIZE - MARGIN, 74); ctx.stroke();
 
   const rows = [
-    [`Feels ${w.feels}°C`, `Humid ${w.humid}%`],
-    [`Wind ${w.wind}km/h ${w.winddir}`, `Precip ${w.precip}mm`],
+    [`${w.feels}° feels`, `${w.humid}% humid`],
+    [`${w.wind}km/h ${w.winddir}`, `${w.precip}mm`],
     [`↑ ${w.sunrise}`, `↓ ${w.sunset}`],
   ];
   ctx.font = "bold 14px STHeiti, Helvetica";
