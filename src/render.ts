@@ -1,31 +1,27 @@
 import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@napi-rs/canvas";
 
 const SIZE = 200;
 const MARGIN = 6;
 
 // register CJK font
-const CJK_FONTS = [
-  "/System/Library/Fonts/STHeiti Light.ttc",
-  "/System/Library/Fonts/STHeiti Medium.ttc",
-];
-for (const f of CJK_FONTS) {
+for (const f of ["/System/Library/Fonts/STHeiti Light.ttc", "/System/Library/Fonts/STHeiti Medium.ttc"]) {
   try { GlobalFonts.registerFromPath(f, "STHeiti"); break; } catch {}
 }
 
-export function encodeGray4(canvas: ReturnType<typeof createCanvas>): Buffer {
+function encodeGray4(canvas: any): Buffer {
   const ctx = canvas.getContext("2d");
-  const { data } = ctx.getImageData(0, 0, SIZE, SIZE); // RGBA
+  const { data } = ctx.getImageData(0, 0, SIZE, SIZE); // RGBA, 160000 bytes
   const frame = Buffer.alloc(10000);
-  for (let i = 0; i < SIZE * SIZE; i += 4) {
-    const bits = [0, 1, 2, 3].map(j => {
-      const idx = (i + j) * 4;
-      const v = Math.round(0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]);
-      if (v < 64)  return 0b11;
-      if (v < 128) return 0b10;
-      if (v < 192) return 0b01;
-      return 0b00;
-    });
-    frame[i / 4] = (bits[0] << 6) | (bits[1] << 4) | (bits[2] << 2) | bits[3];
+  for (let p = 0; p < SIZE * SIZE; p += 4) {
+    let byte = 0;
+    for (let j = 0; j < 4; j++) {
+      const base = (p + j) * 4;
+      const v = Math.round(0.299 * data[base]! + 0.587 * data[base+1]! + 0.114 * data[base+2]!);
+      const bits = v < 64 ? 0b11 : v < 128 ? 0b10 : v < 192 ? 0b01 : 0b00;
+      byte |= bits << (6 - j * 2);
+    }
+    frame[p / 4] = byte;
   }
   return frame;
 }
@@ -48,9 +44,6 @@ export function renderWeather(w: {
   ctx.font = "bold 52px STHeiti, Helvetica";
   ctx.fillText(`${w.temp}°`, MARGIN, 74);
 
-  ctx.font = "14px STHeiti, Helvetica";
-  ctx.fillText(w.desc, MARGIN, 92);  // already shown above but keep for spacing reference
-
   ctx.strokeStyle = "#aaa";
   ctx.beginPath(); ctx.moveTo(MARGIN, 98); ctx.lineTo(SIZE - MARGIN, 98); ctx.stroke();
 
@@ -62,8 +55,8 @@ export function renderWeather(w: {
   ctx.font = "13px STHeiti, Helvetica";
   let y = 114;
   for (const [left, right] of rows) {
-    ctx.fillText(left, MARGIN, y);
-    ctx.fillText(right, 104, y);
+    ctx.fillText(left!, MARGIN, y);
+    ctx.fillText(right!, 104, y);
     y += 19;
   }
 
@@ -98,7 +91,6 @@ export function renderPage(lines: string[], pageIdx: number, totalPages: number)
     y += LINE_H;
   }
 
-  // status bar
   ctx.strokeStyle = "#aaa";
   ctx.beginPath(); ctx.moveTo(MARGIN, SIZE - 16); ctx.lineTo(SIZE - MARGIN, SIZE - 16); ctx.stroke();
   const pct = Math.round(100 * pageIdx / Math.max(totalPages - 1, 1));
@@ -109,16 +101,15 @@ export function renderPage(lines: string[], pageIdx: number, totalPages: number)
   return encodeGray4(canvas);
 }
 
-export function wrapText(text: string, ctx: CanvasRenderingContext2D, maxW: number): string[] {
+function wrapText(text: string, ctx: SKRSContext2D, maxW: number): string[] {
   const lines: string[] = [];
   let current = "";
   for (const ch of text) {
-    const test = current + ch;
-    if (ctx.measureText(test).width > maxW) {
-      lines.push(current);
+    if (ctx.measureText(current + ch).width > maxW) {
+      if (current) lines.push(current);
       current = ch;
     } else {
-      current = test;
+      current += ch;
     }
   }
   if (current) lines.push(current);
@@ -135,7 +126,7 @@ export function paginateText(text: string, linesPerPage = 7): string[][] {
   for (const para of text.split("\n")) {
     const p = para.trim();
     if (!p) { lines.push(""); continue; }
-    lines.push(...wrapText(p, ctx as any, maxW));
+    lines.push(...wrapText(p, ctx, maxW));
   }
 
   const pages: string[][] = [];
