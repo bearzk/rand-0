@@ -38,39 +38,39 @@ export function renderWeather(w: {
   ctx.fillRect(0, 0, SIZE, SIZE);
   ctx.fillStyle = "black";
 
-  ctx.font = "bold 18px STHeiti, Helvetica";
-  ctx.fillText(w.desc, MARGIN, 22);
+  ctx.font = "bold 16px STHeiti, Helvetica";
+  ctx.fillText(w.desc, MARGIN, 20);
 
-  ctx.font = "bold 52px STHeiti, Helvetica";
-  ctx.fillText(`${w.temp}°`, MARGIN, 74);
+  ctx.font = "bold 38px STHeiti, Helvetica";
+  ctx.fillText(`${w.temp}°`, MARGIN, 62);
 
-  ctx.strokeStyle = "#aaa";
-  ctx.beginPath(); ctx.moveTo(MARGIN, 98); ctx.lineTo(SIZE - MARGIN, 98); ctx.stroke();
+  ctx.strokeStyle = "#888";
+  ctx.beginPath(); ctx.moveTo(MARGIN, 74); ctx.lineTo(SIZE - MARGIN, 74); ctx.stroke();
 
   const rows = [
     [`Feels ${w.feels}°C`, `Humid ${w.humid}%`],
     [`Wind ${w.wind}km/h ${w.winddir}`, `Precip ${w.precip}mm`],
     [`↑ ${w.sunrise}`, `↓ ${w.sunset}`],
   ];
-  ctx.font = "13px STHeiti, Helvetica";
-  let y = 114;
+  ctx.font = "bold 14px STHeiti, Helvetica";
+  let y = 92;
   for (const [left, right] of rows) {
     ctx.fillText(left!, MARGIN, y);
     ctx.fillText(right!, 104, y);
-    y += 19;
+    y += 20;
   }
 
-  ctx.strokeStyle = "#aaa";
-  ctx.beginPath(); ctx.moveTo(MARGIN, 168); ctx.lineTo(SIZE - MARGIN, 168); ctx.stroke();
+  ctx.strokeStyle = "#888";
+  ctx.beginPath(); ctx.moveTo(MARGIN, 154); ctx.lineTo(SIZE - MARGIN, 154); ctx.stroke();
 
   const now = new Date().toTimeString().slice(0, 5);
-  ctx.font = "13px Helvetica";
-  ctx.fillText(w.city, MARGIN, 182);
-  ctx.fillText(now, 152, 182);
+  ctx.font = "bold 14px STHeiti, Helvetica";
+  ctx.fillText(w.city, MARGIN, 170);
+  ctx.fillText(now, 152, 170);
 
-  ctx.fillStyle = "#888";
-  ctx.font = "11px Helvetica";
-  ctx.fillText(`data ${w.cachedMinsAgo}m ago`, MARGIN, 196);
+  ctx.fillStyle = "#666";
+  ctx.font = "12px Helvetica";
+  ctx.fillText(`data ${w.cachedMinsAgo}m ago`, MARGIN, 186);
 
   return encodeGray4(canvas);
 }
