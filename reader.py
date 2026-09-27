@@ -29,9 +29,9 @@ WS_URL    = f"ws://{IP}/display/gray4"
 SIZE      = 200
 
 MARGIN    = 6
-FONT_SIZE = 13
-TEXT_ROWS = 13   # lines of text per page
-LINE_H    = 14   # pixels per line
+FONT_SIZE = 20
+TEXT_ROWS = 7    # lines of text per page
+LINE_H    = 22   # pixels per line
 USABLE_W  = SIZE - 2 * MARGIN
 
 PROGRESS_PATH = BOOK_PATH.with_suffix(".progress")
