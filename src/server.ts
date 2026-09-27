@@ -7,7 +7,20 @@ import { WeatherSession } from "./weather";
 import { ReaderSession } from "./reader";
 
 const CONFIG_PATH = join(homedir(), ".config", "rand-0.json");
-const DEFAULT_CONFIG = { ip: "192.168.178.132", cities: ["munich", "xian"], bookUrl: "", bookId: "" };
+const DEFAULT_CONFIG = {
+  ip: "192.168.178.132",
+  cities: ["munich", "xian"],
+  bookUrl: "",
+  bookId: "",
+  fonts: {
+    // paths tried in order; first one found wins
+    // replace with e.g. a Noto Sans CJK path on Linux/Windows
+    cjk: [
+      "/System/Library/Fonts/STHeiti Light.ttc",
+      "/System/Library/Fonts/STHeiti Medium.ttc",
+    ],
+  },
+};
 
 function loadConfig() {
   try {
@@ -21,7 +34,10 @@ function saveConfig(cfg: typeof DEFAULT_CONFIG) {
   writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
-import { paginateText } from "./render";
+import { paginateText, registerFonts } from "./render";
+
+// register fonts from config at startup
+registerFonts(loadConfig().fonts?.cjk ?? []);
 
 // book cache: url → pages (survives stop/start within same server process)
 const bookCache = new Map<string, { pages: string[][], bookId: string }>();

@@ -4,9 +4,11 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 const SIZE = 200;
 const MARGIN = 6;
 
-// register CJK font
-for (const f of ["/System/Library/Fonts/STHeiti Light.ttc", "/System/Library/Fonts/STHeiti Medium.ttc"]) {
-  try { GlobalFonts.registerFromPath(f, "STHeiti"); break; } catch {}
+export function registerFonts(cjkPaths: string[]) {
+  for (const f of cjkPaths) {
+    try { GlobalFonts.registerFromPath(f, "STHeiti"); return; } catch {}
+  }
+  console.warn("[render] no CJK font found — Chinese text may not render. Set fonts.cjk in ~/.config/rand-0.json");
 }
 
 function encodeGray4(canvas: any): Buffer {
